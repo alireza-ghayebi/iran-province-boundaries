@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="ol.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="ol.js"></script>
+    <title>Quick Start</title>
+</head>
+
+<body>
+  
+    <div id="container" style="height: 600px;"></div>
+
+    <script>
+        const geojsonFilePath = "./geojson/map.geojson"; // مسیر فایل GeoJSON
+
+        const map = new ol.Map({
+            target: 'container',
+            controls: ol.control.defaults.defaults({ attribution: false, zoom: false, rotate: false }),
+            layers: [
+                new ol.layer.Tile({
+                    source: new ol.source.OSM({ crossOrigin: null })
+                })
+            ],
+            view: new ol.View({
+                projection: 'EPSG:4326',
+                center: [51.394, 35.699],
+                zoom: 15,
+                minZoom: 5, // حداقل مقدار زوم
+                maxZoom: 7 , // حداکثر مقدار زوم
+            })
+        });
+
+        const createTextStyle = (feature) => {
+            return new ol.style.Text({
+                text: feature.get('name'),
+                font: 'bold 14px Arial, sans-serif',
+                fill: new ol.style.Fill({ color: "white" }),
+                stroke: new ol.style.Stroke({ color: "black", width: 3 }),
+                placement: 'point',
+                overflow: true
+            });
+        };
+
+        const defaultStyle = (feature) => new ol.style.Style({
+            fill: new ol.style.Fill({ color: 'rgba(100, 150, 240, 0.7)' }),
+            stroke: new ol.style.Stroke({ color: 'rgba(0, 80, 160, 1)', width: 3 }),
+            text: createTextStyle(feature)
+        });
+
+        const hoverStyle = (feature) => new ol.style.Style({
+            fill: new ol.style.Fill({ color: 'rgba(255, 140, 0, 0.7)' }),
+            stroke: new ol.style.Stroke({ color: 'rgba(255, 69, 0, 1)', width: 4 }),
+            text: createTextStyle(feature)
+        });
+
+        const clickStyle = (feature) => new ol.style.Style({
+            fill: new ol.style.Fill({ color: 'rgba(50, 205, 50, 0.7)' }),
+            stroke: new ol.style.Stroke({ color: 'rgba(34, 139, 34, 1)', width: 5 }),
+            text: createTextStyle(feature)
+        });
+
+        // بارگذاری فایل GeoJSON
+        fetch(geojsonFilePath)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to load GeoJSON file");
+                }
+                return response.json();
+            })
+            .then(data => {
+                const vectorSource = new ol.source.Vector({
+                    features: new ol.format.GeoJSON().readFeatures(data)
+                });
+
+                const vectorLayer = new ol.layer.Vector({
+                    source: vectorSource,
+                    style: defaultStyle
+                });
+
+                map.addLayer(vectorLayer);
+
+                let selectedFeature = null;
+                let clickedFeature = null;
+                let featureName = '';
+
+                map.on('pointermove', function (evt) {
+                    if (selectedFeature) {
+                        selectedFeature.setStyle(defaultStyle(selectedFeature));
+                        selectedFeature = null;
+                    }
+
+                    map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+                        selectedFeature = feature;
+                        feature.setStyle(hoverStyle(feature));
+                        return true;
+                    });
+                });
+
+                map.on('click', function (evt) {
+                    if (clickedFeature) {
+                        clickedFeature.setStyle(defaultStyle(clickedFeature));
+                        clickedFeature = null;
+                        featureName = '';
+                    }
+
+                    map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+                        clickedFeature = feature;
+                        featureName = feature.get('name');
+                        feature.setStyle(clickStyle(feature));
+                        console.log('Selected feature name:', featureName);
+                        return true;
+                    });
+                });
+
+                map.getView().fit(vectorSource.getExtent(), { size: map.getSize() });
+            })
+            .catch(error => {
+                console.error("Error loading GeoJSON file:", error);
+            });
+
+            
+            const baseLayers = [
+    new ol.layer.Tile({
+        source: new ol.source.OSM(),
+        title: 'OSM'
+    }),
+    new ol.layer.Tile({
+        source: new ol.source.BingMaps({ key: 'YOUR_BING_MAPS_KEY', imagerySet: 'Aerial' }),
+        title: 'Bing Aerial'
+    })
+];
+
+const layerSwitcher = new ol.control.LayerSwitcher({
+    tipLabel: 'Layers'
+});
+
+map.addControl(layerSwitcher);    
+    </script>
+</body>
+</html>
