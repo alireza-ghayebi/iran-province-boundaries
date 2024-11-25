@@ -13,7 +13,7 @@ This project provides an interactive map of Iran's provinces using GeoJSON forma
 
 ---
 ## 🖼️ Preview
-![Map Preview](assets/images/preview.png)
+![Map Preview](mapp.png)
 ---
 
 ## 🛠️ How to Use
